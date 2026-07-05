@@ -187,7 +187,6 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
   const prevClickRef     = useRef(0)
   const uploadInputRef   = useRef(null)
 
-  // Refs para el ciclo de colores con drums
   const colorPositionRef = useRef(0)
   const drumEnergyRef    = useRef(0)
 
@@ -262,7 +261,7 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
   }, [ttmlString])
 
   useEffect(() => {
-    const context = new AudioContext()
+    const context = new AudioContext({ sampleRate: 44100 })
     contextRef.current = context
     const audios={}, analysers={}
 
@@ -275,7 +274,6 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
       const source   = context.createMediaElementSource(audio)
       const analyser = context.createAnalyser()
       analyser.fftSize = 256
-      // FIX: drums con smoothing bajo (0.1) para que decaiga rápido y no se acumule
       analyser.smoothingTimeConstant = name==='vocals'?0.85:name==='bass'?0.45:name==='drums'?0.1:0.5
       if (name==='vocals') {
         const gain = context.createGain()
@@ -309,20 +307,17 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
       analysers.drums.getByteFrequencyData(dataArrays.drums)
       let drums=0; for(let i=0;i<30;i++) drums+=dataArrays.drums[i]; drums/=30
       analysers.other.getByteFrequencyData(dataArrays.other)
-      // FIX: empieza en bin 40 para evitar frecuencias bajas donde bleeding de drums es mayor
       let other=0; for(let i=40;i<80;i++) other+=dataArrays.other[i]; other/=40
 
       sB+=(bass-sB)*0.35; sV+=(vocals-sV)*0.12; sD+=(drums-sD)*0.45; sO+=(other-sO)*0.2
 
       const iB=Math.min(sB/1100,1), iV=Math.min(sV/150,1), iD=Math.min(sD/2000,1), iO=Math.min(sO/150,1)
 
-      // Distorsión y velocidad: solo other
       const nd = 0.2 + iO * 0.2
       if(Math.abs(nd-prevDistortion.current)>0.008){prevDistortion.current=nd;setDistortion(nd)}
       const ns = 0.08 + iO * 0.10
       if(Math.abs(ns-prevSpeed.current)>0.004){prevSpeed.current=ns;setSpeed(ns)}
 
-      // --- Ciclo de colores impulsado por drums ---
       const base = baseColorsRef.current || FALLBACK_COLORS
       const n = base.length
 
@@ -346,13 +341,12 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
       const idxB   = (idxA + 1) % n
       const frac   = curPos - Math.floor(curPos)
 
-      // Solo los primeros 2 slots ciclan con los drums, el resto fijo
-      const newColors = base.map((hex, i) => {
+const newColors = base.map((hex, i) => {
         if (i === 0) return lerpColor(base[idxA % n], base[(idxA + 1) % n], frac)
         if (i === 1) return lerpColor(base[(idxA + 1) % n], base[(idxA + 2) % n], frac)
+if (i === 2) return lerpColor(base[2 % n], base[(2 + 1) % n], iV * 0.4)
         return hex
       })
-
       setColors(newColors)
     }
 
@@ -455,7 +449,6 @@ return (
         input[type=range]{pointer-events:auto;}
       `}</style>
 
-      {/* Fondo */}
       <div style={{position:'absolute',inset:0,zIndex:0}}>
         <MeshGradient
           width={window.innerWidth} height={window.innerHeight}
@@ -464,7 +457,6 @@ return (
         />
       </div>
 
-      {/* Contador + botón añadir */}
       <div style={{position:'absolute',top:'16px',right:'16px',zIndex:10,display:'flex',alignItems:'center',gap:'8px'}}>
         <div style={{color:'rgba(255,255,255,0.4)',fontSize:'12px',fontFamily:'sans-serif'}}>
           {currentIndex+1} / {playlist.length}
@@ -472,19 +464,16 @@ return (
         <input ref={uploadInputRef} type="file" accept=".josng" multiple style={{display:'none'}} onChange={handleLoadMore}/>
         <button tabIndex={-1} onClick={()=>uploadInputRef.current?.click()}
           style={{border:'none',background:'rgba(255,255,255,0.08)',backdropFilter:'blur(12px)',borderRadius:'12px',width:'40px',height:'40px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0}}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="audiocont18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14M5 12h14"/>
           </svg>
         </button>
       </div>
 
-      {/* Layout */}
       <div style={{position:'absolute',inset:0,zIndex:1,display:'flex',flexDirection:isMobile?'column':'row',alignItems:'stretch',padding:isMobile?'24px 20px 0':'0 60px',gap:isMobile?'16px':'60px'}}>
 
-        {/* Columna izquierda */}
         <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',flexShrink:0,gap:'12px'}}>
 
-          {/* Player card */}
           <div style={{
             display:'flex',flexDirection:isMobile?'row':'column',alignItems:'center',
             gap: files['cover.webp'] ? 0 : isMobile?'16px':'20px',
@@ -497,7 +486,6 @@ return (
             overflow: 'hidden',
           }}>
 
-            {/* Cover webp: llega a los 3 bordes, blur transparente abajo */}
 {coverUrl && files['cover.webp'] && (
   <div
     style={{
@@ -530,7 +518,6 @@ return (
   </div>
 )}
 
-            {/* Cover png/jpg: normal con bordes redondeados */}
             {coverUrl && !files['cover.webp'] && (
               <img src={coverUrl} alt="cover" style={{
                 width:isMobile?'80px':'300px',
@@ -541,7 +528,6 @@ return (
               }}/>
             )}
 
-            {/* Contenido: título, controles, seekbar */}
             <div style={{
               display:'flex',flexDirection:'column',gap:'12px',
               flex:isMobile?1:'unset',
@@ -599,7 +585,6 @@ return (
             </div>
           </div>
 
-          {/* Vocals card */}
           <div style={{backdropFilter:'blur(20px)',background:'rgba(0,0,0,0.2)',padding:'12px 16px',borderRadius:'16px',width:isMobile?'100%':`${300+28*2}px`,boxSizing:'border-box',display:'flex',alignItems:'center',gap:'10px'}}>
             <img src={vocalIconUrl} alt="Vocals" style={{width:'20px',height:'20px',objectFit:'contain',flexShrink:0,opacity:0.6}}/>
             <input type="range" min={0} max={1} step={0.01} value={vocalsVolume} onChange={handleVocalsVolume}
@@ -607,7 +592,6 @@ return (
           </div>
         </div>
 
-        {/* Lyrics */}
         <div style={{flex:1,height:isMobile?'0':'100%',minHeight:0}}>
           {ttmlString && (
             <AmLyrics ref={lyricsRef} currentTime={currentTime} onLineClick={handleLineClick} autoScroll interpolate
@@ -650,6 +634,10 @@ export default function App() {
 // py BuilderJosng.py
 
 // npm run build && npx cap sync && npx cap open android
+
+// git add .
+// git commit -m "Descripción de cambios"
+// git push
 
 // Powered by Claude IA (Anthropic)
 // Made by Ortax
