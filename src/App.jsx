@@ -177,16 +177,16 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
   const [metadata, setMetadata]         = useState({title:'Song',artist:'Artist',album:''})
   const [scale, setScale]               = useState(1)
 
-  useEffect(() => {
+useEffect(() => {
     const updateScale = () => {
       if (window.innerWidth < 768) { setScale(1); return }
-      const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900)
-      setScale(Math.max(0.85, Math.min(1.6, s)))
+      const s = Math.min(window.innerWidth / 1000, window.innerHeight / 620)
+      setScale(Math.max(1, Math.min(2.4, s)))
     }
     updateScale()
     window.addEventListener('resize', updateScale)
     return () => window.removeEventListener('resize', updateScale)
-  }, [])
+}, [])
 
   const tracksRef        = useRef({})
   const contextRef       = useRef(null)
@@ -329,9 +329,9 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
       const iB=Math.min(sB/1100,1), iV=Math.min(sV/150,1), iD=Math.min(sD/2000,1), iO=Math.min(sO/150,1)
 
       const nd = 0.2 + iO * 0.2
-      if(Math.abs(nd-prevDistortion.current)>0.008){prevDistortion.current=nd;setDistortion(nd)}
+      if(Math.abs(nd-prevDistortion.current)>0.001){prevDistortion.current=nd;setDistortion(nd)}
       const ns = 0.08 + iO * 0.10
-      if(Math.abs(ns-prevSpeed.current)>0.004){prevSpeed.current=ns;setSpeed(ns)}
+      if(Math.abs(ns-prevSpeed.current)>0.001){prevSpeed.current=ns;setSpeed(ns)}
 
       const base = baseColorsRef.current || FALLBACK_COLORS
       const n = base.length
@@ -617,13 +617,21 @@ return (
           </div>
         </div>
 
-        <div style={{flex:1,minHeight:isMobile?'200px':0,position:'relative',overflow:'hidden'}}>
-          {ttmlString && (
-            <AmLyrics ref={lyricsRef} currentTime={currentTime} onLineClick={handleLineClick} autoScroll interpolate
-              style={{position:'absolute',inset:0,display:'block',width:'100%',height:'100%','--am-lyrics-highlight-color':'#ffffff',color:'rgba(255,255,255,0.35)'}}
-            />
-          )}
-        </div>
+<div style={{flex:1,minHeight:isMobile?'200px':0,position:'relative',overflow:'hidden'}}>
+  {ttmlString && (
+    <div style={{
+      position:'absolute',inset:0,
+      transform: isMobile ? 'none' : `scale(${Math.min(scale,1.8)})`,
+      transformOrigin: 'top left',
+      width: isMobile ? '100%' : `${100/Math.min(scale,1.8)}%`,
+      height: isMobile ? '100%' : `${100/Math.min(scale,1.8)}%`,
+    }}>
+      <AmLyrics ref={lyricsRef} currentTime={currentTime} onLineClick={handleLineClick} autoScroll interpolate
+        style={{display:'block',width:'100%',height:'100%','--am-lyrics-highlight-color':'#ffffff',color:'rgba(255,255,255,0.35)'}}
+      />
+    </div>
+  )}
+</div>
       </div>
     </div>
   )
