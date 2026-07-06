@@ -175,6 +175,18 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
   const [coverUrl, setCoverUrl]         = useState(null)
   const [vocalIconUrl, setVocalIconUrl] = useState('/Vocal.webp')
   const [metadata, setMetadata]         = useState({title:'Song',artist:'Artist',album:''})
+  const [scale, setScale]               = useState(1)
+
+  useEffect(() => {
+    const updateScale = () => {
+      if (window.innerWidth < 768) { setScale(1); return }
+      const s = Math.min(window.innerWidth / 1600, window.innerHeight / 900)
+      setScale(Math.max(0.85, Math.min(1.6, s)))
+    }
+    updateScale()
+    window.addEventListener('resize', updateScale)
+    return () => window.removeEventListener('resize', updateScale)
+  }, [])
 
   const tracksRef        = useRef({})
   const contextRef       = useRef(null)
@@ -263,7 +275,7 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
     }
   }, [ttmlString])
 
-useEffect(() => {
+  useEffect(() => {
     const context = new AudioContext({ sampleRate: 44100 })
     contextRef.current = context
     const audios={}, analysers={}
@@ -436,6 +448,13 @@ useEffect(() => {
     flexShrink:0,padding:'4px',
   }
 
+  const coverSize    = isMobile ? 80 : Math.round(300 * scale)
+  const cardPadding  = isMobile ? 16 : Math.round(28 * scale)
+  const contentWidth = isMobile ? 0 : Math.round(300 * scale)
+  const titleSize    = isMobile ? 16 : Math.round(20 * scale)
+  const artistSize   = isMobile ? 13 : Math.round(14 * scale)
+  const playBtnSize  = isMobile ? 38 : Math.round(44 * scale)
+
 return (
     <div style={{width:'100vw',height:'100vh',overflow:'hidden',position:'relative',background:'black'}}>
 
@@ -470,7 +489,7 @@ return (
         <input ref={uploadInputRef} type="file" accept=".josng" multiple style={{display:'none'}} onChange={handleLoadMore}/>
         <button tabIndex={-1} onClick={()=>uploadInputRef.current?.click()}
           style={{border:'none',background:'rgba(255,255,255,0.08)',backdropFilter:'blur(12px)',borderRadius:'12px',width:'40px',height:'40px',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',padding:0}}>
-          <svg width="18" height="audiocont18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 5v14M5 12h14"/>
           </svg>
         </button>
@@ -485,7 +504,7 @@ return (
             gap: files['cover.webp'] ? 0 : isMobile?'16px':'20px',
             backdropFilter:'blur(20px)',
             background:'rgba(0,0,0,0.2)',
-            padding: files['cover.webp'] ? 0 : isMobile?'16px':'28px',
+            padding: files['cover.webp'] ? 0 : isMobile?'16px':`${cardPadding}px`,
             borderRadius:'28px',
             width:isMobile?'100%':'auto',
             boxSizing:'border-box',
@@ -497,7 +516,7 @@ return (
     style={{
       position: 'relative',
       width: '100%',
-      height: isMobile ? '180px' : '300px',
+      height: isMobile ? '180px' : `${coverSize}px`,
       overflow: 'hidden',
       flexShrink: 0,
 
@@ -526,8 +545,8 @@ return (
 
             {coverUrl && !files['cover.webp'] && (
               <img src={coverUrl} alt="cover" style={{
-                width:isMobile?'80px':'300px',
-                height:isMobile?'80px':'300px',
+                width:isMobile?'80px':`${coverSize}px`,
+                height:isMobile?'80px':`${coverSize}px`,
                 borderRadius:isMobile?'12px':'18px',
                 objectFit:'cover',
                 flexShrink:0,
@@ -537,17 +556,17 @@ return (
             <div style={{
               display:'flex',flexDirection:'column',gap:'12px',
               flex:isMobile?1:'unset',
-              width:isMobile?'0':'300px',
+              width:isMobile?'0':`${contentWidth}px`,
               minWidth:0,
-              padding: files['cover.webp'] ? (isMobile?'12px 16px 16px':'16px 28px 28px') : '0',
+              padding: files['cover.webp'] ? (isMobile?'12px 16px 16px':`16px ${cardPadding}px ${cardPadding}px`) : '0',
             }}>
 
               <div style={{display:'flex',flexDirection:'row',alignItems:'center',gap:'10px'}}>
                 <div style={{color:'white',fontFamily:'sans-serif',textAlign:'left',minWidth:0,flex:1}}>
-                  <div style={{fontSize:isMobile?'16px':'20px',fontWeight:'600',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                  <div style={{fontSize:isMobile?'16px':`${titleSize}px`,fontWeight:'600',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                     {metadata.title}
                   </div>
-                  <div style={{opacity:0.7,marginTop:'4px',fontSize:isMobile?'13px':'14px',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                  <div style={{opacity:0.7,marginTop:'4px',fontSize:isMobile?'13px':`${artistSize}px`,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                     {metadata.artist}
                   </div>
                   {metadata.album && (
@@ -564,7 +583,7 @@ return (
                     onClick={()=>setIsPlaying(p=>!p)}
                     style={{
                       border:'none',background:'white',color:'black',
-                      width:isMobile?'38px':'44px',height:isMobile?'38px':'44px',
+                      width:isMobile?'38px':`${playBtnSize}px`,height:isMobile?'38px':`${playBtnSize}px`,
                       borderRadius:'999px',fontSize:isMobile?'13px':'16px',
                       cursor:'pointer',flexShrink:0,
                       display:'flex',alignItems:'center',justifyContent:'center',
@@ -591,17 +610,17 @@ return (
             </div>
           </div>
 
-          <div style={{backdropFilter:'blur(20px)',background:'rgba(0,0,0,0.2)',padding:'12px 16px',borderRadius:'16px',width:isMobile?'100%':`${300+28*2}px`,boxSizing:'border-box',display:'flex',alignItems:'center',gap:'10px'}}>
+          <div style={{backdropFilter:'blur(20px)',background:'rgba(0,0,0,0.2)',padding:'12px 16px',borderRadius:'16px',width:isMobile?'100%':`${coverSize+cardPadding*2}px`,boxSizing:'border-box',display:'flex',alignItems:'center',gap:'10px'}}>
             <img src={vocalIconUrl} alt="Vocals" style={{width:'20px',height:'20px',objectFit:'contain',flexShrink:0,opacity:0.6}}/>
             <input type="range" min={0} max={1} step={0.01} value={vocalsVolume} onChange={handleVocalsVolume}
               style={{...vocalsSliderStyle,flex:1,minWidth:0}}/>
           </div>
         </div>
 
-        <div style={{flex:1,height:isMobile?'0':'100%',minHeight:0}}>
+        <div style={{flex:1,minHeight:isMobile?'200px':0,position:'relative',overflow:'hidden'}}>
           {ttmlString && (
             <AmLyrics ref={lyricsRef} currentTime={currentTime} onLineClick={handleLineClick} autoScroll interpolate
-              style={{display:'block',width:'100%',height:'100%','--am-lyrics-highlight-color':'#ffffff',color:'rgba(255,255,255,0.35)'}}
+              style={{position:'absolute',inset:0,display:'block',width:'100%',height:'100%','--am-lyrics-highlight-color':'#ffffff',color:'rgba(255,255,255,0.35)'}}
             />
           )}
         </div>
