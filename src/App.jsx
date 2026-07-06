@@ -22,6 +22,9 @@ function rgbToHex([r,g,b]) {
 function lightenRgb([r,g,b], amount=40) {
   return [Math.min(255,r+amount), Math.min(255,g+amount), Math.min(255,b+amount)]
 }
+function darkenRgb([r,g,b], amount=60) {
+  return [Math.max(0,r-amount), Math.max(0,g-amount), Math.max(0,b-amount)]
+}
 function kMeans(pixels, k, iterations=12) {
   const step = Math.max(1, Math.floor(pixels.length/k))
   let centers = []
@@ -260,7 +263,7 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
     }
   }, [ttmlString])
 
-  useEffect(() => {
+useEffect(() => {
     const context = new AudioContext({ sampleRate: 44100 })
     contextRef.current = context
     const audios={}, analysers={}
@@ -341,10 +344,13 @@ function Player({ playlist, currentIndex, onNext, onPrev, onLoadMore }) {
       const idxB   = (idxA + 1) % n
       const frac   = curPos - Math.floor(curPos)
 
-const newColors = base.map((hex, i) => {
+      const newColors = base.map((hex, i) => {
         if (i === 0) return lerpColor(base[idxA % n], base[(idxA + 1) % n], frac)
         if (i === 1) return lerpColor(base[(idxA + 1) % n], base[(idxA + 2) % n], frac)
-if (i === 2) return lerpColor(base[2 % n], base[(2 + 1) % n], iV * 0.4)
+        if (i === 2) {
+          const darkened = rgbToHex(darkenRgb(hexToRgb(base[2 % n]), 80))
+          return lerpColor(base[2 % n], darkened, iV * 0.5)
+        }
         return hex
       })
       setColors(newColors)
